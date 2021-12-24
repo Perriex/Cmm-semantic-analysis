@@ -28,14 +28,33 @@ import parsers.CmmParser;
 import java.rmi.StubNotFoundException;
 import java.util.concurrent.TransferQueue;
 
+class Scope {
+    boolean hasReturn = false;
+}
+
 public class TypeChecker extends Visitor<Void> {
     ExpressionTypeChecker expressionTypeChecker;
     Identifier RETID = new Identifier("#RETURN");
+    Scope top = new Scope();
+    Stack<Scope> scopes;
+
+    private void addScope(SymbolTable pre){
+        SymbolTable.push(new SymbolTable(pre));
+        top = new Scope();
+        scopes.push(new Scope());
+    }
+
+    private void removeScope() {
+        SymbolTable.pop();
+        top = scopes.pop();
+    }
+
     boolean noDeclare = false;
     boolean hasReturn = false;
 
     public TypeChecker() {
         this.expressionTypeChecker = new ExpressionTypeChecker();
+        this.scopes = new Stack<>();
     }
 
     private void checkType(ListType type, Node node)
@@ -126,8 +145,7 @@ public class TypeChecker extends Visitor<Void> {
 
     @Override
     public Void visit(FunctionDeclaration functionDec) {
-        hasReturn = false;
-        SymbolTable.push(new SymbolTable(SymbolTable.root));
+        addScope(SymbolTable.root);
         checkType(functionDec.getReturnType(), functionDec);
         var returnItem = new VariableSymbolTableItem(RETID);
         returnItem.setType(functionDec.getReturnType());
@@ -139,11 +157,11 @@ public class TypeChecker extends Visitor<Void> {
             arg.accept(this);
         }
         functionDec.getBody().accept(this);
-        SymbolTable.pop();
-        if(!(hasReturn || functionDec.getReturnType() instanceof VoidType))
+        if(!(top.hasReturn || functionDec.getReturnType() instanceof VoidType))
         {
             functionDec.addError(new MissingReturnStatement(functionDec.getLine(), functionDec.getFunctionName().getName()));
         }
+        removeScope();
         return null;
     }
 
@@ -232,14 +250,20 @@ public class TypeChecker extends Visitor<Void> {
         if (!isEqual(conditionType, new BoolType())) {
             conditionalStmt.addError(new ConditionNotBool(conditionalStmt.getCondition().getLine()));
         }
-        SymbolTable.push(new SymbolTable(SymbolTable.top));
+
+        addScope(SymbolTable.top);
         conditionalStmt.getThenBody().accept(this);
-        SymbolTable.pop();
+        var hasReturn = top.hasReturn;
+        removeScope();
         if (conditionalStmt.getElseBody() != null) {
-            SymbolTable.push(new SymbolTable(SymbolTable.top));
+            addScope(SymbolTable.top);
             conditionalStmt.getElseBody().accept(this);
-            SymbolTable.pop();
+            hasReturn = top.hasReturn && hasReturn;
+            removeScope();
         }
+
+        top.hasReturn = hasReturn && conditionalStmt.getElseBody() != null || top.hasReturn;
+
         return null;
     }
 
@@ -270,7 +294,7 @@ public class TypeChecker extends Visitor<Void> {
 
     @Override
     public Void visit(ReturnStmt returnStmt) {
-        hasReturn = true;
+        top.hasReturn = true;
         VariableSymbolTableItem item = null;
         try {
             item = (VariableSymbolTableItem) SymbolTable.top.getItem(VariableSymbolTableItem.START_KEY + RETID.getName());
@@ -296,9 +320,9 @@ public class TypeChecker extends Visitor<Void> {
         if (!isEqual(conditionType, new BoolType())) {
             loopStmt.addError(new ConditionNotBool(loopStmt.getCondition().getLine()));
         }
-        SymbolTable.push(new SymbolTable(SymbolTable.top));
+        addScope(SymbolTable.top);
         loopStmt.getBody().accept(this);
-        SymbolTable.pop();
+        removeScope();
         return null;
     }
 
