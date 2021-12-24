@@ -22,6 +22,25 @@ import java.rmi.NoSuchObjectException;
 import java.util.ArrayList;
 
 public class ExpressionTypeChecker extends Visitor<Type> {
+    enum Types {
+        BOOL,INT,ALL,EQ
+    }
+    private Types getTypeOfOperands(BinaryOperator operator)
+    {
+        if(operator == BinaryOperator.and || operator == BinaryOperator.or)
+        {
+            return Types.BOOL;
+        }
+        if(operator == BinaryOperator.assign)
+        {
+            return Types.ALL;
+        }
+        if(operator == BinaryOperator.eq)
+        {
+            return Types.EQ;
+        }
+        return Types.INT;
+    }
     private Type checkIntTypeEx(BinaryExpression binaryExpression,Type type, BinaryOperator operator)
     {
         if(type instanceof IntType)
@@ -66,11 +85,6 @@ public class ExpressionTypeChecker extends Visitor<Type> {
     public Type visit(BinaryExpression binaryExpression) {
         Type lType = binaryExpression.getFirstOperand().accept(this);
         Type rType = binaryExpression.getSecondOperand().accept(this);
-        if (lType instanceof VoidType || rType instanceof VoidType)
-        {
-            binaryExpression.addError(new CantUseValueOfVoidFunction(binaryExpression.getLine()));
-            return new NoType();
-        }
         BinaryOperator operator = binaryExpression.getBinaryOperator();
         if (lType instanceof IntType)
         {
@@ -202,6 +216,12 @@ public class ExpressionTypeChecker extends Visitor<Type> {
 
         }
         catch (ItemNotFoundException ex) {
+            try {
+                FunctionSymbolTableItem item = (FunctionSymbolTableItem) SymbolTable.top.getItem(FunctionSymbolTableItem.START_KEY + identifier.getName());
+                return new FptrType(item.getArgTypes(), item.getReturnType());
+            }catch (ItemNotFoundException ex2)
+            {
+            }
             identifier.addError(new VarNotDeclared(identifier.getLine(), identifier.getName()));
         }
         return new NoType();
