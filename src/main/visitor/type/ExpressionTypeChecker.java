@@ -67,6 +67,11 @@ public class ExpressionTypeChecker extends Visitor<Type> {
     public Type visit(BinaryExpression binaryExpression) {
         Type lType = binaryExpression.getFirstOperand().accept(this);
         Type rType = binaryExpression.getSecondOperand().accept(this);
+        if (lType instanceof VoidType || rType instanceof VoidType)
+        {
+            binaryExpression.addError(new CantUseValueOfVoidFunction(binaryExpression.getLine()));
+            return new NoType();
+        }
         BinaryOperator operator = binaryExpression.getBinaryOperator();
         if (lType instanceof IntType)
         {
@@ -92,21 +97,14 @@ public class ExpressionTypeChecker extends Visitor<Type> {
                         (rType instanceof StructType && lType instanceof StructType)) {
                         return new BoolType();
                     }
-                    else
-                    {
-                        binaryExpression.addError(new UnsupportedOperandType(binaryExpression.getLine(),operator.name()));
-                    }
                 } else if (operator == BinaryOperator.assign) {
                     if ((rType instanceof FptrType && lType instanceof FptrType) ||
                        (rType instanceof StructType && lType instanceof StructType) ||
                        (rType instanceof ListType && lType instanceof ListType)) {
                         return new VoidType();
                     }
-                    else
-                    {
-                        binaryExpression.addError(new UnsupportedOperandType(binaryExpression.getLine(),operator.name()));
-                    }
                 }
+                binaryExpression.addError(new UnsupportedOperandType(binaryExpression.getLine(),operator.name()));
             }
         }
         return new NoType();
@@ -178,23 +176,29 @@ public class ExpressionTypeChecker extends Visitor<Type> {
         try
         {
             SymbolTableItem item = SymbolTable.top.getItem( VariableSymbolTableItem.START_KEY+identifier.getName());
-            if(item instanceof FunctionSymbolTableItem)
+            Type id =  ((VariableSymbolTableItem) item).getType();
+            if(id instanceof StructType)
             {
-                return new FptrType(((FunctionSymbolTableItem) item).getArgTypes(),((FunctionSymbolTableItem) item).getReturnType());
+                Identifier nameStruct = ((StructType) id).getStructName();
+                try
+                {
+                    SymbolTable.top.getItem( StructSymbolTableItem.START_KEY+nameStruct.getName());
+                    return id;
+                }
+                catch (ItemNotFoundException ex)
+                {
+                    identifier.addError(new StructNotDeclared(identifier.getLine(), identifier.getName()));
+                }
             }
-            if(item instanceof StructSymbolTableItem)
-            {
-                return new StructType(((StructSymbolTableItem) item).getStructDeclaration().getStructName());
+            else {
+                return id;
             }
-            if(item instanceof VariableSymbolTableItem)
-            {
-                return ((VariableSymbolTableItem) item).getType();
-            }
+
         }
         catch (ItemNotFoundException ex) {
             identifier.addError(new VarNotDeclared(identifier.getLine(), identifier.getName()));
         }
-        return null;
+        return new NoType();
     }
 
     @Override
@@ -219,6 +223,10 @@ public class ExpressionTypeChecker extends Visitor<Type> {
     @Override
     public Type visit(StructAccess structAccess) {
         Type instType = structAccess.getInstance().accept(this);
+        if(instType instanceof NoType)
+        {
+            return new NoType();
+        }
         if (!(instType instanceof StructType))
         {
             structAccess.addError(new AccessOnNonStruct(structAccess.getLine()));
@@ -228,11 +236,11 @@ public class ExpressionTypeChecker extends Visitor<Type> {
         String structName = ((StructType) instType).getStructName().getName();
         try
         {
-            StructSymbolTableItem struct = (StructSymbolTableItem) SymbolTable.top.getItem(structName);
+            StructSymbolTableItem struct = (StructSymbolTableItem) SymbolTable.root.getItem(StructSymbolTableItem.START_KEY+structName);
             SymbolTable structTable = struct.getStructSymbolTable();
             try
             {
-                VariableSymbolTableItem element = (VariableSymbolTableItem) structTable.getItem(varName);
+                VariableSymbolTableItem element = (VariableSymbolTableItem) structTable.getItem(VariableSymbolTableItem.START_KEY+varName);
                 return element.getType();
             }
             catch (ItemNotFoundException ex)
