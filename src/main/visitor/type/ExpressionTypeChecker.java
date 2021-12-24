@@ -160,7 +160,7 @@ public class ExpressionTypeChecker extends Visitor<Type> {
         if(args.size() != funcCall.getArgs().size())
         {
             funcCall.addError(new ArgsInFunctionCallNotMatchDefinition(funcCall.getLine()));
-            return new NoType();
+            return ((FptrType) insType).getReturnType();
         }
         for(int i = 0;i <funcCall.getArgs().size();i++)
         {
@@ -170,7 +170,7 @@ public class ExpressionTypeChecker extends Visitor<Type> {
                     !(args.get(i) instanceof ListType && ((FptrType) insType).getArgsType().get(i) instanceof ListType ) ||
                     !(args.get(i) instanceof FptrType && ((FptrType) insType).getArgsType().get(i) instanceof FptrType ) ) {
                 funcCall.addError(new ArgsInFunctionCallNotMatchDefinition(funcCall.getLine()));
-                return new NoType();
+                return ((FptrType) insType).getReturnType();
             }
         }
         return ((FptrType) insType).getReturnType();
