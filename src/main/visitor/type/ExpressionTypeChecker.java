@@ -17,7 +17,6 @@ import main.symbolTable.items.StructSymbolTableItem;
 import main.symbolTable.items.SymbolTableItem;
 import main.symbolTable.items.VariableSymbolTableItem;
 import main.visitor.Visitor;
-import java.rmi.NoSuchObjectException;
 import java.util.ArrayList;
 
 public class ExpressionTypeChecker extends Visitor<Type> {
@@ -155,6 +154,10 @@ public class ExpressionTypeChecker extends Visitor<Type> {
         for(Expression arg :funcCall.getArgs())
         {
             Type item = arg.accept(this);
+            if (item instanceof VoidType)
+            {
+                funcCall.addError(new CantUseValueOfVoidFunction(funcCall.getLine()));
+            }
             args.add(item);
         }
         if(args.size() != funcCall.getArgs().size())
@@ -206,8 +209,8 @@ public class ExpressionTypeChecker extends Visitor<Type> {
                 return new FptrType(item.getArgTypes(), item.getReturnType());
             }catch (ItemNotFoundException ex2)
             {
+                identifier.addError(new VarNotDeclared(identifier.getLine(), identifier.getName()));
             }
-            identifier.addError(new VarNotDeclared(identifier.getLine(), identifier.getName()));
         }
         return new NoType();
     }
