@@ -3,25 +3,46 @@ package main.visitor.type;
 import main.ast.nodes.Program;
 import main.ast.nodes.declaration.*;
 import main.ast.nodes.declaration.struct.*;
+import main.ast.nodes.expression.Identifier;
+import main.ast.nodes.expression.operators.BinaryOperator;
+import main.ast.nodes.expression.values.primitive.BoolValue;
+import main.ast.nodes.expression.values.primitive.IntValue;
 import main.ast.nodes.statement.*;
+import main.ast.types.ListType;
+import main.ast.types.primitives.BoolType;
+import main.ast.types.primitives.IntType;
+import main.ast.types.primitives.VoidType;
+import main.compileError.typeError.*;
+import main.symbolTable.SymbolTable;
+import main.symbolTable.exceptions.ItemAlreadyExistsException;
+import main.symbolTable.exceptions.ItemNotFoundException;
+import main.symbolTable.items.VariableSymbolTableItem;
+import main.visitor.ErrorReporter;
 import main.visitor.Visitor;
+import parsers.CmmParser;
 
 public class TypeChecker extends Visitor<Void> {
     ExpressionTypeChecker expressionTypeChecker;
-
-    public void TypeChecker(){
+    Identifier RETID = new Identifier("#RETURN");
+    public TypeChecker(){
         this.expressionTypeChecker = new ExpressionTypeChecker();
     }
 
     @Override
     public Void visit(Program program) {
-        //Todo
+        for (StructDeclaration struct : program.getStructs()) {
+            struct.accept(this);
+        }
+        for (FunctionDeclaration function : program.getFunctions()) {
+            function.accept(this);
+        }
+        program.getMain().accept(this);
         return null;
     }
 
     @Override
     public Void visit(FunctionDeclaration functionDec) {
-        //Todo
+        functionDec.getBody().accept(this);
         return null;
     }
 
@@ -33,79 +54,154 @@ public class TypeChecker extends Visitor<Void> {
 
     @Override
     public Void visit(VariableDeclaration variableDec) {
-        //Todo
+        var item = new VariableSymbolTableItem(variableDec.getVarName());
+        item.setType(variableDec.getVarType());
+        try {
+            SymbolTable.top.put(item);
+        } catch (ItemAlreadyExistsException ignore) {
+        }
         return null;
     }
 
     @Override
     public Void visit(StructDeclaration structDec) {
-        //Todo
+        SymbolTable.push(new SymbolTable(SymbolTable.root));
+        structDec.getBody().accept(this);
+        SymbolTable.pop();
         return null;
     }
 
     @Override
     public Void visit(SetGetVarDeclaration setGetVarDec) {
-        //Todo
+        SymbolTable.push(new SymbolTable(SymbolTable.top));
+        for (VariableDeclaration arg : setGetVarDec.getArgs()) {
+            arg.accept(this);
+        }
+        setGetVarDec.getSetterBody().accept(this);
+        SymbolTable.pop();
+        SymbolTable.push(new SymbolTable(SymbolTable.top));
+        var item = new VariableSymbolTableItem(RETID);
+        item.setType(setGetVarDec.getVarType());
+        try {
+            SymbolTable.top.put(item);
+        } catch (ItemAlreadyExistsException ignore) {
+        }
+        SymbolTable.pop();
         return null;
     }
 
     @Override
     public Void visit(AssignmentStmt assignmentStmt) {
-        //Todo
+        var lexpr = assignmentStmt.getLValue();
+        if(lexpr instanceof IntValue || lexpr instanceof BoolValue){
+            assignmentStmt.addError(new LeftSideNotLvalue(lexpr.getLine()));
+        }
+        var ltype = assignmentStmt.getLValue().accept(expressionTypeChecker);
+        var rtype = assignmentStmt.getRValue().accept(expressionTypeChecker);
+        if(!ltype.getClass().equals(rtype.getClass()))
+        {
+            assignmentStmt.addError(new UnsupportedOperandType(assignmentStmt.getLine(), BinaryOperator.assign.toString()));
+        }
         return null;
     }
 
     @Override
     public Void visit(BlockStmt blockStmt) {
-        //Todo
+        for (Statement statement : blockStmt.getStatements()) {
+            statement.accept(this);
+        }
         return null;
     }
 
     @Override
     public Void visit(ConditionalStmt conditionalStmt) {
-        //Todo
+        var conditionType = conditionalStmt.getCondition().accept(expressionTypeChecker);
+        if (!(conditionType instanceof BoolType))
+        {
+            conditionalStmt.addError(new ConditionNotBool(conditionalStmt.getCondition().getLine()));
+        }
+        conditionalStmt.getThenBody().accept(this);
+        if(conditionalStmt.getElseBody() != null)
+        {
+            conditionalStmt.getElseBody().accept(this);
+        }
         return null;
     }
 
     @Override
     public Void visit(FunctionCallStmt functionCallStmt) {
-        //Todo
+        functionCallStmt.getFunctionCall().accept(expressionTypeChecker);
         return null;
     }
 
     @Override
     public Void visit(DisplayStmt displayStmt) {
-        //Todo
+        var type = displayStmt.getArg().accept(expressionTypeChecker);
+        if(!(type instanceof BoolType || type instanceof IntType || type instanceof ListType))
+        {
+            displayStmt.addError(new UnsupportedTypeForDisplay(displayStmt.getLine()));
+        }
         return null;
     }
 
     @Override
     public Void visit(ReturnStmt returnStmt) {
-        //Todo
+        VariableSymbolTableItem item = null;
+        try {
+            item = (VariableSymbolTableItem)SymbolTable.top.getItem(VariableSymbolTableItem.START_KEY+"ret");
+        } catch (ItemNotFoundException ignore) {
+            returnStmt.addError(new CannotUseReturn(returnStmt.getLine()));
+            return null;
+        }
+
+        if(returnStmt.getReturnedExpr() == null && !(item.getType() instanceof VoidType))
+        {
+            returnStmt.addError(new ReturnValueNotMatchFunctionReturnType(returnStmt.getLine()));
+        }
+        else {
+            var retType = returnStmt.getReturnedExpr().accept(expressionTypeChecker);
+            if (!retType.getClass().equals(item.getType().getClass())){
+                returnStmt.addError(new ReturnValueNotMatchFunctionReturnType(returnStmt.getLine()));
+            }
+        }
         return null;
     }
 
     @Override
     public Void visit(LoopStmt loopStmt) {
-        //Todo
+        var conditionType = loopStmt.getCondition().accept(expressionTypeChecker);
+        if (!(conditionType instanceof BoolType))
+        {
+            loopStmt.addError(new ConditionNotBool(loopStmt.getCondition().getLine()));
+        }
+        loopStmt.getBody().accept(this);
         return null;
     }
 
     @Override
     public Void visit(VarDecStmt varDecStmt) {
-        //Todo
+        for (VariableDeclaration var : varDecStmt.getVars()) {
+            if(var.getDefaultValue() != null)
+            {
+                var type = var.getDefaultValue().accept(expressionTypeChecker);
+                if (!type.toString().equals(var.getVarType().toString()))
+                {
+                    var.addError(new UnsupportedOperandType(var.getLine(), BinaryOperator.assign.toString()));
+                }
+            }
+        }
         return null;
     }
 
     @Override
     public Void visit(ListAppendStmt listAppendStmt) {
-        //Todo
+        listAppendStmt.getListAppendExpr().accept(expressionTypeChecker);
         return null;
     }
 
     @Override
     public Void visit(ListSizeStmt listSizeStmt) {
-        //Todo
+        listSizeStmt.getListSizeExpr().accept(expressionTypeChecker);
         return null;
     }
 }
