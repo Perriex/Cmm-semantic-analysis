@@ -22,7 +22,6 @@ import java.rmi.NoSuchObjectException;
 import java.util.ArrayList;
 
 public class ExpressionTypeChecker extends Visitor<Type> {
-
     private Type checkIntTypeEx(BinaryExpression binaryExpression,Type type, BinaryOperator operator)
     {
         if(type instanceof IntType)
@@ -32,7 +31,7 @@ public class ExpressionTypeChecker extends Visitor<Type> {
                 if(operator == BinaryOperator.assign)
                     return new VoidType();
                 if(operator == BinaryOperator.sub || operator == BinaryOperator.div ||
-                    operator == BinaryOperator.mult || operator == BinaryOperator.add)
+                        operator == BinaryOperator.mult || operator == BinaryOperator.add)
                     return new IntType();
                 return new BoolType();
             }
@@ -94,17 +93,24 @@ public class ExpressionTypeChecker extends Visitor<Type> {
             if(!(rType instanceof NoType && lType instanceof NoType)) {
                 if (operator == BinaryOperator.eq) {
                     if ((rType instanceof FptrType && lType instanceof FptrType) ||
-                        (rType instanceof StructType && lType instanceof StructType)) {
+                            (rType instanceof StructType && lType instanceof StructType)) {
                         return new BoolType();
+                    }
+                    else
+                    {
+                        binaryExpression.addError(new UnsupportedOperandType(binaryExpression.getLine(),operator.name()));
                     }
                 } else if (operator == BinaryOperator.assign) {
                     if ((rType instanceof FptrType && lType instanceof FptrType) ||
-                       (rType instanceof StructType && lType instanceof StructType) ||
-                       (rType instanceof ListType && lType instanceof ListType)) {
+                            (rType instanceof StructType && lType instanceof StructType) ||
+                            (rType instanceof ListType && lType instanceof ListType)) {
                         return new VoidType();
                     }
+                    else
+                    {
+                        binaryExpression.addError(new UnsupportedOperandType(binaryExpression.getLine(),operator.name()));
+                    }
                 }
-                binaryExpression.addError(new UnsupportedOperandType(binaryExpression.getLine(),operator.name()));
             }
         }
         return new NoType();
