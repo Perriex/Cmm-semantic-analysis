@@ -58,10 +58,6 @@ public class ExpressionTypeChecker extends Visitor<Type> {
                 binaryExpression.addError(new UnsupportedOperandType(binaryExpression.getLine(), getOperand(operator) ));
                 return new NoType();
             }
-            else
-            {
-                return new NoType();
-            }
         }
         else{
             if(lType instanceof IntType && rType instanceof IntType)
@@ -74,17 +70,39 @@ public class ExpressionTypeChecker extends Visitor<Type> {
                 binaryExpression.addError(new UnsupportedOperandType(binaryExpression.getLine(),getOperand(operator) ));
                 return new NoType();
             }
-            else
-            {
-                return new NoType();
-            }
         }
+        return new NoType();
     }
 
     @Override
     public Type visit(UnaryExpression unaryExpression) {
         //Todo
-        return null;
+        Expression ex = unaryExpression.getOperand();
+        Type exType = ex.accept(this);
+        if(unaryExpression.getOperator() == UnaryOperator.not)
+        {
+            if(exType instanceof BoolType)
+            {
+                return new BoolType();
+            }
+            else if(exType instanceof IntType)
+            {
+                unaryExpression.addError(new UnsupportedOperandType(unaryExpression.getLine(), "not"));
+                return new NoType();
+            }
+        }else
+        {
+            if(exType instanceof IntType)
+            {
+                return new IntType();
+            }
+            else if(exType instanceof BoolType)
+            {
+                unaryExpression.addError(new UnsupportedOperandType(unaryExpression.getLine(), "minus"));
+                return new NoType();
+            }
+        }
+        return new NoType();
     }
 
     @Override
