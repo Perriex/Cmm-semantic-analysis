@@ -12,12 +12,14 @@ import main.ast.types.primitives.VoidType;
 import main.compileError.typeError.*;
 import main.symbolTable.SymbolTable;
 import main.symbolTable.exceptions.ItemNotFoundException;
+import main.symbolTable.items.FunctionSymbolTableItem;
 import main.symbolTable.items.StructSymbolTableItem;
 import main.symbolTable.items.SymbolTableItem;
 import main.symbolTable.items.VariableSymbolTableItem;
 import main.visitor.Visitor;
 
 import java.rmi.NoSuchObjectException;
+import java.util.ArrayList;
 
 public class ExpressionTypeChecker extends Visitor<Type> {
 
@@ -140,13 +142,58 @@ public class ExpressionTypeChecker extends Visitor<Type> {
 
     @Override
     public Type visit(FunctionCall funcCall) {
-        //Todo
-        return null;
+        Type insType = funcCall.getInstance().accept(this);
+        if(!(insType instanceof FptrType))
+        {
+            funcCall.addError(new CallOnNoneFptrType(funcCall.getLine()));
+            return new NoType();
+        }
+        ArrayList<Type> args = new ArrayList<>();
+        for(Expression arg :funcCall.getArgs())
+        {
+            Type item = arg.accept(this);
+            args.add(item);
+        }
+        if(args.size() != funcCall.getArgs().size())
+        {
+            funcCall.addError(new ArgsInFunctionCallNotMatchDefinition(funcCall.getLine()));
+            return new NoType();
+        }
+        for(int i = 0;i <funcCall.getArgs().size();i++)
+        {
+            if(!(args.get(i) instanceof BoolType && ((FptrType) insType).getArgsType().get(i) instanceof BoolType ) ||
+                    !(args.get(i) instanceof IntType && ((FptrType) insType).getArgsType().get(i) instanceof IntType ) ||
+                   !(args.get(i) instanceof StructType && ((FptrType) insType).getArgsType().get(i) instanceof StructType ) ||
+                    !(args.get(i) instanceof ListType && ((FptrType) insType).getArgsType().get(i) instanceof ListType ) ||
+                    !(args.get(i) instanceof FptrType && ((FptrType) insType).getArgsType().get(i) instanceof FptrType ) ) {
+                funcCall.addError(new ArgsInFunctionCallNotMatchDefinition(funcCall.getLine()));
+                return new NoType();
+            }
+        }
+        return ((FptrType) insType).getReturnType();
     }
 
     @Override
     public Type visit(Identifier identifier) {
-
+        try
+        {
+            SymbolTableItem item = SymbolTable.top.getItem(identifier.getName());
+            if(item instanceof FunctionSymbolTableItem)
+            {
+                return new FptrType(((FunctionSymbolTableItem) item).getArgTypes(),((FunctionSymbolTableItem) item).getReturnType());
+            }
+            if(item instanceof StructSymbolTableItem)
+            {
+                return new StructType(((StructSymbolTableItem) item).getStructDeclaration().getStructName());
+            }
+            if(item instanceof VariableSymbolTableItem)
+            {
+                return ((VariableSymbolTableItem) item).getType();
+            }
+        }
+        catch (ItemNotFoundException ex) {
+            identifier.addError(new VarNotDeclared(identifier.getLine(), identifier.getName()));
+        }
         return null;
     }
 
@@ -202,7 +249,15 @@ public class ExpressionTypeChecker extends Visitor<Type> {
 
     @Override
     public Type visit(ListSize listSize) {
-        //Todo
+        Type list = listSize.getArg().accept(this);
+        if(list instanceof ListType)
+        {
+            return new IntType();
+        }
+        if(!(list instanceof NoType))
+        {
+            listSize.addError(new GetSizeOfNonList(listSize.getLine()));
+        }
         return null;
     }
 
