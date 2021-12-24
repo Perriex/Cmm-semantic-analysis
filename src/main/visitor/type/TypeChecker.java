@@ -42,13 +42,17 @@ public class TypeChecker extends Visitor<Void> {
 
     @Override
     public Void visit(FunctionDeclaration functionDec) {
+        SymbolTable.push(new SymbolTable(SymbolTable.root));
         functionDec.getBody().accept(this);
+        SymbolTable.pop();
         return null;
     }
 
     @Override
     public Void visit(MainDeclaration mainDec) {
-        //Todo
+        SymbolTable.push(new SymbolTable(SymbolTable.root));
+        mainDec.getBody().accept(this);
+        SymbolTable.pop();
         return null;
     }
 
@@ -120,10 +124,14 @@ public class TypeChecker extends Visitor<Void> {
         {
             conditionalStmt.addError(new ConditionNotBool(conditionalStmt.getCondition().getLine()));
         }
+        SymbolTable.push(new SymbolTable(SymbolTable.top));
         conditionalStmt.getThenBody().accept(this);
+        SymbolTable.pop();
         if(conditionalStmt.getElseBody() != null)
         {
+            SymbolTable.push(new SymbolTable(SymbolTable.top));
             conditionalStmt.getElseBody().accept(this);
+            SymbolTable.pop();
         }
         return null;
     }
@@ -174,7 +182,9 @@ public class TypeChecker extends Visitor<Void> {
         {
             loopStmt.addError(new ConditionNotBool(loopStmt.getCondition().getLine()));
         }
+        SymbolTable.push(new SymbolTable(SymbolTable.top));
         loopStmt.getBody().accept(this);
+        SymbolTable.pop();
         return null;
     }
 
