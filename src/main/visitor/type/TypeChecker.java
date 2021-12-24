@@ -78,16 +78,22 @@ public class TypeChecker extends Visitor<Void> {
     @Override
     public Void visit(SetGetVarDeclaration setGetVarDec) {
         SymbolTable.push(new SymbolTable(SymbolTable.top));
+        var item = new VariableSymbolTableItem(setGetVarDec.getVarName());
+        item.setType(setGetVarDec.getVarType());
+        try {
+            SymbolTable.top.put(item);
+        } catch (ItemAlreadyExistsException ignore) {
+        }
         for (VariableDeclaration arg : setGetVarDec.getArgs()) {
             arg.accept(this);
         }
         setGetVarDec.getSetterBody().accept(this);
         SymbolTable.pop();
         SymbolTable.push(new SymbolTable(SymbolTable.top));
-        var item = new VariableSymbolTableItem(RETID);
-        item.setType(setGetVarDec.getVarType());
+        var returnItem = new VariableSymbolTableItem(RETID);
+        returnItem.setType(setGetVarDec.getVarType());
         try {
-            SymbolTable.top.put(item);
+            SymbolTable.top.put(returnItem);
         } catch (ItemAlreadyExistsException ignore) {
         }
         SymbolTable.pop();
@@ -191,6 +197,12 @@ public class TypeChecker extends Visitor<Void> {
     @Override
     public Void visit(VarDecStmt varDecStmt) {
         for (VariableDeclaration var : varDecStmt.getVars()) {
+            var item = new VariableSymbolTableItem(var.getVarName());
+            item.setType(var.getVarType());
+            try {
+                SymbolTable.top.put(item);
+            } catch (ItemAlreadyExistsException ignore) {
+            }
             if(var.getDefaultValue() != null)
             {
                 var type = var.getDefaultValue().accept(expressionTypeChecker);

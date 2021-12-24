@@ -177,7 +177,7 @@ public class ExpressionTypeChecker extends Visitor<Type> {
     public Type visit(Identifier identifier) {
         try
         {
-            SymbolTableItem item = SymbolTable.top.getItem(identifier.getName());
+            SymbolTableItem item = SymbolTable.top.getItem( VariableSymbolTableItem.START_KEY+identifier.getName());
             if(item instanceof FunctionSymbolTableItem)
             {
                 return new FptrType(((FunctionSymbolTableItem) item).getArgTypes(),((FunctionSymbolTableItem) item).getReturnType());
