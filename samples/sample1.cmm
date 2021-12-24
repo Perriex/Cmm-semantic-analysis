@@ -1,7 +1,20 @@
+list#list#int f() begin
+    list#int a;
+    return a;
+end
+
+void f2 () begin
+    return 1;
+end
+
+int f3 () begin
+    if(false)
+        return 1
+    int a = 2
+end
+
 main() begin
-    list#int a
-    size(1)
-    append(a, 2)
-    append(2, 1)
-    size(a)
+    f(1)
+
+    return;
 end

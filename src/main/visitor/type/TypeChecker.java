@@ -32,6 +32,7 @@ public class TypeChecker extends Visitor<Void> {
     ExpressionTypeChecker expressionTypeChecker;
     Identifier RETID = new Identifier("#RETURN");
     boolean noDeclare = false;
+    boolean hasReturn = false;
 
     public TypeChecker() {
         this.expressionTypeChecker = new ExpressionTypeChecker();
@@ -108,7 +109,7 @@ public class TypeChecker extends Visitor<Void> {
         if(type1 instanceof FptrType){
             return isEqual((FptrType) type1, (FptrType) type2);
         }
-        return false;
+        return true;
     }
 
     @Override
@@ -125,6 +126,7 @@ public class TypeChecker extends Visitor<Void> {
 
     @Override
     public Void visit(FunctionDeclaration functionDec) {
+        hasReturn = false;
         SymbolTable.push(new SymbolTable(SymbolTable.root));
         checkType(functionDec.getReturnType(), functionDec);
         var returnItem = new VariableSymbolTableItem(RETID);
@@ -138,6 +140,10 @@ public class TypeChecker extends Visitor<Void> {
         }
         functionDec.getBody().accept(this);
         SymbolTable.pop();
+        if(!(hasReturn || functionDec.getReturnType() instanceof VoidType))
+        {
+            functionDec.addError(new MissingReturnStatement(functionDec.getLine(), functionDec.getFunctionName().getName()));
+        }
         return null;
     }
 
@@ -264,6 +270,7 @@ public class TypeChecker extends Visitor<Void> {
 
     @Override
     public Void visit(ReturnStmt returnStmt) {
+        hasReturn = true;
         VariableSymbolTableItem item = null;
         try {
             item = (VariableSymbolTableItem) SymbolTable.top.getItem(VariableSymbolTableItem.START_KEY + RETID.getName());
