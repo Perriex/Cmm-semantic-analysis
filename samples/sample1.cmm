@@ -1,3 +1,7 @@
 main() begin
-    f(1)
+    list#int a
+    size(1)
+    append(a, 2)
+    append(2, 1)
+    size(a)
 end
