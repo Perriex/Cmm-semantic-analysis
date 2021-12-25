@@ -42,6 +42,18 @@ public class ExpressionTypeChecker extends Visitor<Type> {
     public Type visit(BinaryExpression binaryExpression) {
         Type lType = binaryExpression.getFirstOperand().accept(this);
         Type rType = binaryExpression.getSecondOperand().accept(this);
+        boolean both = false;
+        if(lType instanceof VoidType )
+        {
+            binaryExpression.addError(new CantUseValueOfVoidFunction(binaryExpression.getLine()));
+            both = true;
+        }
+        if(rType instanceof VoidType )
+        {
+            binaryExpression.addError(new CantUseValueOfVoidFunction(binaryExpression.getLine()));
+            if(both)
+                return new NoType();
+        }
         BinaryOperator operator = binaryExpression.getBinaryOperator();
         Types types = getTypeOfOperands(operator);
         if(types == Types.ALL)
@@ -81,6 +93,9 @@ public class ExpressionTypeChecker extends Visitor<Type> {
         {
             if((lType instanceof IntType && rType instanceof IntType))
             {
+                if(operator == BinaryOperator.lt || operator == BinaryOperator.eq ||
+                    operator == BinaryOperator.gt  )
+                    return new BoolType();
                 return new IntType();
             }
             else if (!(lType instanceof NoType && rType instanceof IntType) &&
@@ -144,30 +159,30 @@ public class ExpressionTypeChecker extends Visitor<Type> {
             funcCall.addError(new CallOnNoneFptrType(funcCall.getLine()));
             return new NoType();
         }
-        if (((FptrType) insType).getReturnType() instanceof VoidType)
-        {
-            funcCall.addError(new CantUseValueOfVoidFunction(funcCall.getLine()));
-        }
         ArrayList<Type> args = new ArrayList<>();
         for(Expression arg :funcCall.getArgs())
         {
             Type item = arg.accept(this);
+            if (item instanceof VoidType)
+            {
+                funcCall.addError(new CantUseValueOfVoidFunction(funcCall.getLine()));
+            }
             args.add(item);
         }
         if(args.size() != funcCall.getArgs().size())
         {
             funcCall.addError(new ArgsInFunctionCallNotMatchDefinition(funcCall.getLine()));
-            return new NoType();
+            return ((FptrType) insType).getReturnType();
         }
         for(int i = 0;i <funcCall.getArgs().size();i++)
         {
             if(!(args.get(i) instanceof BoolType && ((FptrType) insType).getArgsType().get(i) instanceof BoolType ) ||
                     !(args.get(i) instanceof IntType && ((FptrType) insType).getArgsType().get(i) instanceof IntType ) ||
-                   !(args.get(i) instanceof StructType && ((FptrType) insType).getArgsType().get(i) instanceof StructType ) ||
+                    !(args.get(i) instanceof StructType && ((FptrType) insType).getArgsType().get(i) instanceof StructType ) ||
                     !(args.get(i) instanceof ListType && ((FptrType) insType).getArgsType().get(i) instanceof ListType ) ||
                     !(args.get(i) instanceof FptrType && ((FptrType) insType).getArgsType().get(i) instanceof FptrType ) ) {
                 funcCall.addError(new ArgsInFunctionCallNotMatchDefinition(funcCall.getLine()));
-                return new NoType();
+                return ((FptrType) insType).getReturnType();
             }
         }
         return ((FptrType) insType).getReturnType();
@@ -189,7 +204,6 @@ public class ExpressionTypeChecker extends Visitor<Type> {
                 }
                 catch (ItemNotFoundException ex)
                 {
-                    identifier.addError(new StructNotDeclared(identifier.getLine(), nameStruct.getName()));
                     return new NoType();
                 }
             }
@@ -224,7 +238,7 @@ public class ExpressionTypeChecker extends Visitor<Type> {
         }
         else if (!(instType instanceof NoType) && indexType instanceof IntType)
         {
-           listAccessByIndex.addError(new AccessByIndexOnNonList(listAccessByIndex.getLine()));
+            listAccessByIndex.addError(new AccessByIndexOnNonList(listAccessByIndex.getLine()));
         }
         return new NoType();
     }
@@ -289,9 +303,9 @@ public class ExpressionTypeChecker extends Visitor<Type> {
         Type listEl = listAppend.getElementArg().accept(this);
         Type listEls = ((ListType) listType).getType();
         if((listEl instanceof BoolType && listEls instanceof BoolType ) ||
-         (listEl instanceof IntType && listEls instanceof IntType ) ||
-         (listEl instanceof StructType && listEls instanceof StructType ) ||
-         (listEl instanceof ListType && listEls instanceof ListType ) )
+                (listEl instanceof IntType && listEls instanceof IntType ) ||
+                (listEl instanceof StructType && listEls instanceof StructType ) ||
+                (listEl instanceof ListType && listEls instanceof ListType ) )
         {
             return new VoidType();
         }

@@ -1,5 +1,4 @@
 package main.visitor.type;
-
 import main.ast.nodes.Node;
 import main.ast.nodes.Program;
 import main.ast.nodes.declaration.*;
@@ -24,7 +23,6 @@ import main.symbolTable.utils.Stack;
 import main.visitor.ErrorReporter;
 import main.visitor.Visitor;
 import parsers.CmmParser;
-
 import java.rmi.StubNotFoundException;
 import java.util.concurrent.TransferQueue;
 

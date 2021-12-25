@@ -1,8 +1,44 @@
-struct B begin
-    int num
+struct A begin
+    int c
+    bool d
+    int x, y, z=2
+    bool find (int arg) begin
+            set begin
+                x = arg * y
+            end
+            get begin
+                return d
+            end
+    end
 end
 
-main() begin
-    struct B b
-    b = 2
+struct B begin
+    int c
+    int find (int v,int b) begin
+            set begin
+                c = b - v
+            end
+            get begin
+                return c
+            end
+    end
+end
+
+bool a(int d,int b)begin
+    int c = d + b;
+    return true
+end
+
+main()begin
+    struct B c
+    struct A r,b
+    r = b
+    if(r == b)begin
+        r = b
+    end
+    int count = b.find(5)
+    while(count > 12)begin
+        count = count + 1;
+    end
+    fptr < int, int -> bool > func = a;
 end

@@ -1,3 +1,8 @@
+struct A begin
+    int c
+end
+
 main() begin
-    struct B b
+    struct A st;
+    bool d = st.c
 end
