@@ -189,6 +189,11 @@ public class TypeChecker extends Visitor<Void> {
     public Void visit(StructDeclaration structDec) {
         SymbolTable.push(new SymbolTable(SymbolTable.root));
         structDec.getBody().accept(this);
+        try {
+            var structItem = SymbolTable.root.getItem(StructSymbolTableItem.START_KEY+structDec.getStructName().getName());
+            ((StructSymbolTableItem)structItem).setStructSymbolTable(SymbolTable.top);
+        } catch (ItemNotFoundException ignore) {
+        }
         SymbolTable.pop();
         return null;
     }
