@@ -17,6 +17,7 @@ import main.compileError.typeError.*;
 import main.symbolTable.SymbolTable;
 import main.symbolTable.exceptions.ItemAlreadyExistsException;
 import main.symbolTable.exceptions.ItemNotFoundException;
+import main.symbolTable.items.FunctionSymbolTableItem;
 import main.symbolTable.items.StructSymbolTableItem;
 import main.symbolTable.items.VariableSymbolTableItem;
 import main.symbolTable.utils.Stack;
@@ -24,6 +25,7 @@ import main.visitor.ErrorReporter;
 import main.visitor.Visitor;
 import parsers.CmmParser;
 import java.rmi.StubNotFoundException;
+import java.util.ArrayList;
 import java.util.concurrent.TransferQueue;
 
 class Scope {
@@ -221,6 +223,12 @@ public class TypeChecker extends Visitor<Void> {
         }
         setGetVarDec.getGetterBody().accept(this);
         SymbolTable.pop();
+        //added this
+        ArrayList<Type> args = new ArrayList<>();
+        for(VariableDeclaration i: setGetVarDec.getArgs()){
+            args.add(i.getVarType());
+        }
+        item.setType(new FptrType(args, setGetVarDec.getVarType()));
         try {
             SymbolTable.top.put(item);
         } catch (ItemAlreadyExistsException ignore) {

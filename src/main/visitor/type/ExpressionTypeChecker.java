@@ -176,11 +176,11 @@ public class ExpressionTypeChecker extends Visitor<Type> {
         }
         for(int i = 0;i <funcCall.getArgs().size();i++)
         {
-            if(!(args.get(i) instanceof BoolType && ((FptrType) insType).getArgsType().get(i) instanceof BoolType ) ||
-                    !(args.get(i) instanceof IntType && ((FptrType) insType).getArgsType().get(i) instanceof IntType ) ||
-                    !(args.get(i) instanceof StructType && ((FptrType) insType).getArgsType().get(i) instanceof StructType ) ||
-                    !(args.get(i) instanceof ListType && ((FptrType) insType).getArgsType().get(i) instanceof ListType ) ||
-                    !(args.get(i) instanceof FptrType && ((FptrType) insType).getArgsType().get(i) instanceof FptrType ) ) {
+            if(!((args.get(i) instanceof BoolType && ((FptrType) insType).getArgsType().get(i) instanceof BoolType ) ||
+                    (args.get(i) instanceof IntType && ((FptrType) insType).getArgsType().get(i) instanceof IntType ) ||
+                    (args.get(i) instanceof StructType && ((FptrType) insType).getArgsType().get(i) instanceof StructType ) ||
+                    (args.get(i) instanceof ListType && ((FptrType) insType).getArgsType().get(i) instanceof ListType ) ||
+                    (args.get(i) instanceof FptrType && ((FptrType) insType).getArgsType().get(i) instanceof FptrType )) ) {
                 funcCall.addError(new ArgsInFunctionCallNotMatchDefinition(funcCall.getLine()));
                 return ((FptrType) insType).getReturnType();
             }

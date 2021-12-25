@@ -12,5 +12,6 @@ end
 
 main()begin
     struct A b
-    int count = b.find(5)
+    int a
+    int count = b.find()
 end
