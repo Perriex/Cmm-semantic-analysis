@@ -333,6 +333,7 @@ public class TypeChecker extends Visitor<Void> {
         }
         for (VariableDeclaration var : varDecStmt.getVars()) {
             var item = new VariableSymbolTableItem(var.getVarName());
+            checkType(var.getVarType(), varDecStmt);
             item.setType(var.getVarType());
             try {
                 SymbolTable.top.put(item);
