@@ -1,5 +1,6 @@
 struct A begin
     int c
+    struct B a
     int find (int arg) begin
             set begin
                 c = arg
@@ -9,9 +10,16 @@ struct A begin
             end
     end
 end
+struct B begin
+    int c
+end
+int call()begin
+    return 2
+end
 
 main()begin
     struct A b
     int a
-    int count = b.find()
+    fptr <void -> int> q;
+    q = call
 end
