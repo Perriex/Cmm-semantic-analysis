@@ -221,6 +221,10 @@ public class TypeChecker extends Visitor<Void> {
         }
         setGetVarDec.getGetterBody().accept(this);
         SymbolTable.pop();
+        try {
+            SymbolTable.top.put(item);
+        } catch (ItemAlreadyExistsException ignore) {
+        }
         noDeclare = false;
         return null;
     }
