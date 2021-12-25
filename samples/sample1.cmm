@@ -1,25 +1,7 @@
-struct A begin
-    int c
-    struct B a
-    int find (int arg) begin
-            set begin
-                c = arg
-            end
-            get begin
-                return c
-            end
-    end
+void f()begin
+    return
 end
-struct B begin
-    int c
-end
-int call()begin
-    return 2
-end
-
 main()begin
-    struct A b
-    int a
-    fptr <void -> int> q;
-    q = call
+    int a = f()
+    f()
 end

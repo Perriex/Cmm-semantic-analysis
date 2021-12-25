@@ -1,0 +1,17 @@
+struct B begin
+    int a
+end
+struct B f() begin
+    struct B b
+    return b
+end
+
+void f2() begin
+    return
+end
+
+main()begin
+    struct B a = f()
+    int c, d;
+    c + d = 2
+end

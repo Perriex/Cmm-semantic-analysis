@@ -1,13 +1,16 @@
 package main.visitor.type;
+
 import main.ast.nodes.Node;
 import main.ast.nodes.Program;
-import main.ast.nodes.declaration.*;
-import main.ast.nodes.declaration.struct.*;
+import main.ast.nodes.declaration.FunctionDeclaration;
+import main.ast.nodes.declaration.MainDeclaration;
+import main.ast.nodes.declaration.VariableDeclaration;
+import main.ast.nodes.declaration.struct.StructDeclaration;
 import main.ast.nodes.expression.Expression;
 import main.ast.nodes.expression.Identifier;
+import main.ast.nodes.expression.ListAccessByIndex;
+import main.ast.nodes.expression.StructAccess;
 import main.ast.nodes.expression.operators.BinaryOperator;
-import main.ast.nodes.expression.values.primitive.BoolValue;
-import main.ast.nodes.expression.values.primitive.IntValue;
 import main.ast.nodes.statement.*;
 import main.ast.types.*;
 import main.ast.types.primitives.BoolType;
@@ -17,16 +20,12 @@ import main.compileError.typeError.*;
 import main.symbolTable.SymbolTable;
 import main.symbolTable.exceptions.ItemAlreadyExistsException;
 import main.symbolTable.exceptions.ItemNotFoundException;
-import main.symbolTable.items.FunctionSymbolTableItem;
 import main.symbolTable.items.StructSymbolTableItem;
 import main.symbolTable.items.VariableSymbolTableItem;
 import main.symbolTable.utils.Stack;
-import main.visitor.ErrorReporter;
 import main.visitor.Visitor;
-import parsers.CmmParser;
-import java.rmi.StubNotFoundException;
+
 import java.util.ArrayList;
-import java.util.concurrent.TransferQueue;
 
 class Scope {
     boolean hasReturn = false;
@@ -93,7 +92,7 @@ public class TypeChecker extends Visitor<Void> {
 
     private boolean isEqual(StructType type1, StructType type2)
     {
-        return type1.getStructName().equals(type2.getStructName());
+        return type1.getStructName().getName().equals(type2.getStructName().getName());
     }
 
     private boolean isEqual(FptrType type1, FptrType type2)
@@ -240,7 +239,7 @@ public class TypeChecker extends Visitor<Void> {
     @Override
     public Void visit(AssignmentStmt assignmentStmt) {
         var lexpr = assignmentStmt.getLValue();
-        if (lexpr instanceof IntValue || lexpr instanceof BoolValue) {
+        if (!(lexpr instanceof StructAccess || lexpr instanceof Identifier || lexpr instanceof ListAccessByIndex)) {
             assignmentStmt.addError(new LeftSideNotLvalue(lexpr.getLine()));
         }
         var ltype = assignmentStmt.getLValue().accept(expressionTypeChecker);
@@ -284,6 +283,7 @@ public class TypeChecker extends Visitor<Void> {
 
     @Override
     public Void visit(FunctionCallStmt functionCallStmt) {
+        expressionTypeChecker.setAsStatement();
         functionCallStmt.getFunctionCall().accept(expressionTypeChecker);
         return null;
     }
@@ -301,7 +301,6 @@ public class TypeChecker extends Visitor<Void> {
     {
         var type = expression.accept(expressionTypeChecker);
         if(type instanceof VoidType){
-            expression.addError(new CantUseValueOfVoidFunction(expression.getLine()));
             return new NoType();
         }
         return type;
@@ -321,7 +320,7 @@ public class TypeChecker extends Visitor<Void> {
         if (returnStmt.getReturnedExpr() == null && !(item.getType() instanceof VoidType)) {
             returnStmt.addError(new ReturnValueNotMatchFunctionReturnType(returnStmt.getLine()));
         } else {
-            var retType = returnStmt.getReturnedExpr().accept(expressionTypeChecker);
+            var retType = returnStmt.getReturnedExpr() == null ? new VoidType() : returnStmt.getReturnedExpr().accept(expressionTypeChecker);
             if (!isEqual(retType, item.getType())) {
                 returnStmt.addError(new ReturnValueNotMatchFunctionReturnType(returnStmt.getLine()));
             }

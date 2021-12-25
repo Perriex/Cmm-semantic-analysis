@@ -19,6 +19,7 @@ import main.visitor.Visitor;
 import java.util.ArrayList;
 
 public class ExpressionTypeChecker extends Visitor<Type> {
+    private boolean isStatement = false;
     enum Types {
         BOOL,INT,ALL,EQ
     }
@@ -37,6 +38,11 @@ public class ExpressionTypeChecker extends Visitor<Type> {
             return Types.EQ;
         }
         return Types.INT;
+    }
+
+    public void setAsStatement()
+    {
+        isStatement = true;
     }
 
     private boolean checkLists(ListType l, ListType r)
@@ -203,14 +209,16 @@ public class ExpressionTypeChecker extends Visitor<Type> {
             funcCall.addError(new CallOnNoneFptrType(funcCall.getLine()));
             return new NoType();
         }
+        if (((FptrType)insType).getReturnType() instanceof VoidType && !isStatement)
+        {
+            funcCall.addError(new CantUseValueOfVoidFunction(funcCall.getLine()));
+        }
+        isStatement = false;
+
         ArrayList<Type> args = new ArrayList<>();
         for(Expression arg :funcCall.getArgs())
         {
             Type item = arg.accept(this);
-            if (item instanceof VoidType)
-            {
-                funcCall.addError(new CantUseValueOfVoidFunction(funcCall.getLine()));
-            }
             args.add(item);
         }
         if(args.size() != ((FptrType) insType).getArgsType().size())
