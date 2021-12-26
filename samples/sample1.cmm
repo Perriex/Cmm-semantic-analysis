@@ -1,3 +1,5 @@
+struct C
+    int v
 void f() begin
     return
 end
@@ -6,6 +8,11 @@ fptr<void->void> f2() begin
     return f
 end
 
+struct C f4()begin
+    struct C a
+    return a
+end
 main()begin
-    f2()()()
+f() = 2
+
 end

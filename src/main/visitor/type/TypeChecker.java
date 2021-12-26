@@ -240,9 +240,11 @@ public class TypeChecker extends Visitor<Void> {
                 (lexpr instanceof ExprInPar && ((ExprInPar) lexpr).getInputs().size() == 1))) {
             assignmentStmt.addError(new LeftSideNotLvalue(lexpr.getLine()));
         }
+        expressionTypeChecker.setAsStatement();
         var ltype = assignmentStmt.getLValue().accept(expressionTypeChecker);
+        expressionTypeChecker.setAsNoneStatement();
         var rtype = assignmentStmt.getRValue().accept(expressionTypeChecker);
-        if (!isEqual(ltype, rtype)) {
+        if (!isEqual(ltype, rtype) && !(ltype instanceof VoidType)) {
             assignmentStmt.addError(new UnsupportedOperandType(assignmentStmt.getLine(), BinaryOperator.assign.toString()));
         }
         return null;
