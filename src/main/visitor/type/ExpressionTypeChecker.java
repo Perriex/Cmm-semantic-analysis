@@ -97,23 +97,15 @@ public class ExpressionTypeChecker extends Visitor<Type> {
     public Type visit(BinaryExpression binaryExpression) {
         Type lType = binaryExpression.getFirstOperand().accept(this);
         Type rType = binaryExpression.getSecondOperand().accept(this);
-        if(lType instanceof NoType && binaryExpression.getFirstOperand() instanceof ListAppend){
-            binaryExpression.addError(new CantUseValueOfVoidFunction(binaryExpression.getLine()));
-            return new NoType();
-        }
-        if(rType instanceof NoType && binaryExpression.getSecondOperand() instanceof ListAppend){
-            binaryExpression.addError(new CantUseValueOfVoidFunction(binaryExpression.getLine()));
-            return new NoType();
-        }
         boolean both = false;
         if(lType instanceof VoidType )
         {
-            binaryExpression.addError(new CantUseValueOfVoidFunction(binaryExpression.getLine()));
             both = true;
+            lType = new NoType();
         }
         if(rType instanceof VoidType )
         {
-            binaryExpression.addError(new CantUseValueOfVoidFunction(binaryExpression.getLine()));
+            rType = new NoType();
             if(both)
                 return new NoType();
         }
