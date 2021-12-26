@@ -181,6 +181,10 @@ public class ExpressionTypeChecker extends Visitor<Type> {
     @Override
     public Type visit(UnaryExpression unaryExpression) {
         Type exType =  unaryExpression.getOperand().accept(this);
+        if(exType instanceof VoidType || unaryExpression.getOperand() instanceof ListAppend ){
+            unaryExpression.addError(new CantUseValueOfVoidFunction(unaryExpression.getLine()));
+            exType =new  NoType();
+        }
         if (unaryExpression.getOperator() == UnaryOperator.not)
         {
             if (exType instanceof BoolType)

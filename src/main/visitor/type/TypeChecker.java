@@ -299,11 +299,7 @@ public class TypeChecker extends Visitor<Void> {
     private Type mustBeValue(Expression expression)
     {
         var type = expression.accept(expressionTypeChecker);
-        if(type instanceof VoidType && !(expression instanceof ListAppend)){
-            return new NoType();
-        }
-        if(expression instanceof ListAppend){//added
-            expression.addError(new CantUseValueOfVoidFunction((expression.getLine())));
+        if(type instanceof VoidType ){
             return new NoType();
         }
         if(expression instanceof StructAccess && type instanceof FptrType)//added
@@ -323,10 +319,6 @@ public class TypeChecker extends Visitor<Void> {
             item = (VariableSymbolTableItem) SymbolTable.top.getItem(VariableSymbolTableItem.START_KEY + RETID.getName());
         } catch (ItemNotFoundException ignore) {
             returnStmt.addError(new CannotUseReturn(returnStmt.getLine()));
-            return null;
-        }
-        if(returnStmt.getReturnedExpr() instanceof ListAppend ){//added
-            returnStmt.addError(new CantUseValueOfVoidFunction(returnStmt.getLine()));
             return null;
         }
         if (returnStmt.getReturnedExpr() == null && !(item.getType() instanceof VoidType)) {
