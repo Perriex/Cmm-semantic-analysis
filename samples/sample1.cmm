@@ -1,9 +1,8 @@
-fptr<void->void> a()
-    return b
-
 void b()
     return
 
 main()begin
-    a()()
+    int c = 2 + b()
+    int d = b()
+    c = b()
 end

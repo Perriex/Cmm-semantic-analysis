@@ -366,7 +366,7 @@ public class TypeChecker extends Visitor<Void> {
             }
             if (var.getDefaultValue() != null) {
                 var type = mustBeValue(var.getDefaultValue());
-                if (!isEqual(type, var.getVarType())) {
+                if (!isEqual(type, var.getVarType()) && !(type instanceof NoType)) {
                     var.addError(new UnsupportedOperandType(var.getLine(), BinaryOperator.assign.toString()));
                 }
             }
