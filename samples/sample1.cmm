@@ -4,5 +4,6 @@ void b()
 main()begin
 list#int a
 
-    int c = 2+ append(a,2)
+    int c = 2 + append(a,2)
+    append(a, 2)
 end

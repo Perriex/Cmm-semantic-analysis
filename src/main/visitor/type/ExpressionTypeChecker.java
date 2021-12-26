@@ -361,6 +361,11 @@ private Type checkType(VariableSymbolTableItem id)
     @Override
     public Type visit(ListAppend listAppend) {
         Type listType = listAppend.getListArg().accept(this);
+        if(!isStatement)
+        {
+            listAppend.addError(new CantUseValueOfVoidFunction(listAppend.getLine()));
+        }
+        isStatement = false;
         if(!(listType instanceof ListType) && !(listType instanceof NoType))
         {
             listAppend.addError(new AppendToNonList(listAppend.getLine()));

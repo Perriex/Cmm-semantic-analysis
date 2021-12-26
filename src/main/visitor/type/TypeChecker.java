@@ -376,6 +376,7 @@ public class TypeChecker extends Visitor<Void> {
 
     @Override
     public Void visit(ListAppendStmt listAppendStmt) {
+        expressionTypeChecker.setAsStatement();
         listAppendStmt.getListAppendExpr().accept(expressionTypeChecker);
         return null;
     }
