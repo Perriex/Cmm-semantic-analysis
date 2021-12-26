@@ -1,0 +1,9 @@
+void b()
+    return
+
+main()begin
+list#int a
+
+    int c = 2 + append(a,2)
+    append(a, 2)
+end
