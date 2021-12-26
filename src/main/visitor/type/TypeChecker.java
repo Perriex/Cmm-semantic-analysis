@@ -19,10 +19,10 @@ import main.symbolTable.exceptions.ItemAlreadyExistsException;
 import main.symbolTable.exceptions.ItemNotFoundException;
 import main.symbolTable.items.StructSymbolTableItem;
 import main.symbolTable.items.VariableSymbolTableItem;
-import main.symbolTable.utils.Stack;
 import main.visitor.Visitor;
 
 import java.util.ArrayList;
+import java.util.Stack;
 
 class Scope {
     boolean hasReturn = false;
@@ -37,20 +37,21 @@ public class TypeChecker extends Visitor<Void> {
     private void addScope(SymbolTable pre){
         SymbolTable.push(new SymbolTable(pre));
         top = new Scope();
-        scopes.push(new Scope());
+        scopes.push(top);
     }
 
     private void removeScope() {
         SymbolTable.pop();
-        top = scopes.pop();
+        scopes.pop();
+        top = scopes.peek();
     }
 
     boolean noDeclare = false;
-    boolean hasReturn = false;
 
     public TypeChecker() {
         this.expressionTypeChecker = new ExpressionTypeChecker();
         this.scopes = new Stack<>();
+        scopes.push(top);
     }
 
     private void checkType(ListType type, Node node)
@@ -274,7 +275,7 @@ public class TypeChecker extends Visitor<Void> {
             removeScope();
         }
 
-        top.hasReturn = hasReturn && conditionalStmt.getElseBody() != null || top.hasReturn;
+        top.hasReturn = hasReturn && (conditionalStmt.getElseBody() != null) || top.hasReturn;
 
         return null;
     }

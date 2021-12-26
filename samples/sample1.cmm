@@ -1,11 +1,20 @@
-void f() begin
-    return
-end
+int f() begin
+    int a = 2
 
-fptr<void->void> f2() begin
-    return f
-end
+    while(1 == 2)
+        return 1
 
-main()begin
-    f2()()()
+        while(1 == 2)
+                return 1
+                while(1 == 2)
+                        return 1
+                        while(1 == 2)
+                                        return 1
+                                        while(1 == 2)
+                                                        return 1
+
+    return 0
+end
+main() begin
+    f()
 end
