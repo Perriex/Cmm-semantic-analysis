@@ -1,7 +1,9 @@
-void f()begin
+fptr<void->void> a()
+    return b
+
+void b()
     return
-end
+
 main()begin
-    int a = f()
-    f()
+    a()()
 end

@@ -6,10 +6,7 @@ import main.ast.nodes.declaration.FunctionDeclaration;
 import main.ast.nodes.declaration.MainDeclaration;
 import main.ast.nodes.declaration.VariableDeclaration;
 import main.ast.nodes.declaration.struct.StructDeclaration;
-import main.ast.nodes.expression.Expression;
-import main.ast.nodes.expression.Identifier;
-import main.ast.nodes.expression.ListAccessByIndex;
-import main.ast.nodes.expression.StructAccess;
+import main.ast.nodes.expression.*;
 import main.ast.nodes.expression.operators.BinaryOperator;
 import main.ast.nodes.statement.*;
 import main.ast.types.*;
@@ -239,7 +236,8 @@ public class TypeChecker extends Visitor<Void> {
     @Override
     public Void visit(AssignmentStmt assignmentStmt) {
         var lexpr = assignmentStmt.getLValue();
-        if (!(lexpr instanceof StructAccess || lexpr instanceof Identifier || lexpr instanceof ListAccessByIndex)) {
+        if (!(lexpr instanceof StructAccess || lexpr instanceof Identifier || lexpr instanceof ListAccessByIndex ||
+                (lexpr instanceof ExprInPar && ((ExprInPar) lexpr).getInputs().size() == 1))) {
             assignmentStmt.addError(new LeftSideNotLvalue(lexpr.getLine()));
         }
         var ltype = assignmentStmt.getLValue().accept(expressionTypeChecker);
@@ -285,6 +283,7 @@ public class TypeChecker extends Visitor<Void> {
     public Void visit(FunctionCallStmt functionCallStmt) {
         expressionTypeChecker.setAsStatement();
         functionCallStmt.getFunctionCall().accept(expressionTypeChecker);
+        expressionTypeChecker.setAsNoneStatement();
         return null;
     }
 
@@ -300,9 +299,15 @@ public class TypeChecker extends Visitor<Void> {
     private Type mustBeValue(Expression expression)
     {
         var type = expression.accept(expressionTypeChecker);
-        if(type instanceof VoidType){
+        if(type instanceof VoidType && !(expression instanceof ListAppend)){
             return new NoType();
         }
+        if(expression instanceof ListAppend){//added
+            expression.addError(new CantUseValueOfVoidFunction((expression.getLine())));
+            return new NoType();
+        }
+        if(expression instanceof StructAccess && type instanceof FptrType)//added
+            return ((FptrType) type).getReturnType();
         return type;
     }
 
@@ -310,17 +315,23 @@ public class TypeChecker extends Visitor<Void> {
     public Void visit(ReturnStmt returnStmt) {
         top.hasReturn = true;
         VariableSymbolTableItem item = null;
+        var retType = returnStmt.getReturnedExpr() == null ? new VoidType() : returnStmt.getReturnedExpr().accept(expressionTypeChecker);
+        if(retType instanceof FptrType && ((FptrType) retType).getArgsType().size() == 0){
+            ((FptrType) retType).addArgType(new VoidType());
+        }
         try {
             item = (VariableSymbolTableItem) SymbolTable.top.getItem(VariableSymbolTableItem.START_KEY + RETID.getName());
         } catch (ItemNotFoundException ignore) {
             returnStmt.addError(new CannotUseReturn(returnStmt.getLine()));
             return null;
         }
-
+        if(returnStmt.getReturnedExpr() instanceof ListAppend ){//added
+            returnStmt.addError(new CantUseValueOfVoidFunction(returnStmt.getLine()));
+            return null;
+        }
         if (returnStmt.getReturnedExpr() == null && !(item.getType() instanceof VoidType)) {
             returnStmt.addError(new ReturnValueNotMatchFunctionReturnType(returnStmt.getLine()));
         } else {
-            var retType = returnStmt.getReturnedExpr() == null ? new VoidType() : returnStmt.getReturnedExpr().accept(expressionTypeChecker);
             if (!isEqual(retType, item.getType())) {
                 returnStmt.addError(new ReturnValueNotMatchFunctionReturnType(returnStmt.getLine()));
             }

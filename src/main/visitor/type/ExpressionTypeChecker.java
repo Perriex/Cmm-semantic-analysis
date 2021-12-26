@@ -45,6 +45,11 @@ public class ExpressionTypeChecker extends Visitor<Type> {
         isStatement = true;
     }
 
+    public void setAsNoneStatement()
+    {
+        isStatement = false;
+    }
+
     private boolean checkLists(ListType l, ListType r)
     {
         if(l.getType() instanceof IntType && r.getType() instanceof IntType)
@@ -92,6 +97,14 @@ public class ExpressionTypeChecker extends Visitor<Type> {
     public Type visit(BinaryExpression binaryExpression) {
         Type lType = binaryExpression.getFirstOperand().accept(this);
         Type rType = binaryExpression.getSecondOperand().accept(this);
+        if(lType instanceof NoType && binaryExpression.getFirstOperand() instanceof ListAppend){
+            binaryExpression.addError(new CantUseValueOfVoidFunction(binaryExpression.getLine()));
+            return new NoType();
+        }
+        if(rType instanceof NoType && binaryExpression.getSecondOperand() instanceof ListAppend){
+            binaryExpression.addError(new CantUseValueOfVoidFunction(binaryExpression.getLine()));
+            return new NoType();
+        }
         boolean both = false;
         if(lType instanceof VoidType )
         {
@@ -130,7 +143,7 @@ public class ExpressionTypeChecker extends Visitor<Type> {
             else if((lType instanceof IntType && rType instanceof IntType) ||
                     (lType instanceof BoolType && rType instanceof BoolType) ||
                     (lType instanceof StructType && rType instanceof StructType) ||
-                    (lType instanceof FptrType && rType instanceof FptrType))
+                    (lType instanceof FptrType && rType instanceof FptrType) )
             {
                 return new BoolType();
             }
@@ -206,15 +219,18 @@ public class ExpressionTypeChecker extends Visitor<Type> {
         Type insType = funcCall.getInstance().accept(this);
         if(!(insType instanceof FptrType))
         {
-            funcCall.addError(new CallOnNoneFptrType(funcCall.getLine()));
+            if(!(insType instanceof NoType))
+                funcCall.addError(new CallOnNoneFptrType(funcCall.getLine()));
             return new NoType();
         }
         if (((FptrType)insType).getReturnType() instanceof VoidType && !isStatement)
         {
             funcCall.addError(new CantUseValueOfVoidFunction(funcCall.getLine()));
         }
-        isStatement = false;
-
+        if(((FptrType) insType).getArgsType().size() > 0 && ((FptrType) insType).getArgsType().get(0) instanceof VoidType && funcCall.getArgs().size() == 0)
+        {
+            return ((FptrType) insType).getReturnType();
+        }
         ArrayList<Type> args = new ArrayList<>();
         for(Expression arg :funcCall.getArgs())
         {
@@ -277,17 +293,30 @@ public class ExpressionTypeChecker extends Visitor<Type> {
         {
             return ((ListType) instType).getType();
         }
-        else if (instType instanceof ListType && !(indexType instanceof NoType))
+        if (!(indexType instanceof IntType || indexType instanceof NoType))
         {
             listAccessByIndex.addError(new ListIndexNotInt(listAccessByIndex.getLine()));
         }
-        else if (!(instType instanceof NoType) && indexType instanceof IntType)
+         if (!(instType instanceof ListType || instType instanceof NoType) )
         {
             listAccessByIndex.addError(new AccessByIndexOnNonList(listAccessByIndex.getLine()));
         }
         return new NoType();
     }
-
+private Type checkType(VariableSymbolTableItem id)
+{
+    if( id.getType() instanceof StructType){
+        try {
+            SymbolTable.root.getItem(StructSymbolTableItem.START_KEY + id.getName());
+            return id.getType();
+        }catch (ItemNotFoundException ex){
+            return new NoType();
+        }
+    }
+    else{
+        return id.getType();
+    }
+}
     @Override
     public Type visit(StructAccess structAccess) {
         Type instType = structAccess.getInstance().accept(this);
@@ -309,7 +338,7 @@ public class ExpressionTypeChecker extends Visitor<Type> {
             try
             {
                 VariableSymbolTableItem element = (VariableSymbolTableItem) structTable.getItem(VariableSymbolTableItem.START_KEY+varName);
-                return element.getType();
+                return checkType(element);
             }
             catch (ItemNotFoundException ex)
             {
@@ -334,23 +363,25 @@ public class ExpressionTypeChecker extends Visitor<Type> {
         {
             listSize.addError(new GetSizeOfNonList(listSize.getLine()));
         }
-        return null;
+        return new NoType();
     }
 
     @Override
     public Type visit(ListAppend listAppend) {
         Type listType = listAppend.getListArg().accept(this);
-        if(!(listType instanceof ListType))
+        if(!(listType instanceof ListType) && !(listType instanceof NoType))
         {
             listAppend.addError(new AppendToNonList(listAppend.getLine()));
             return new NoType();
         }
         Type listEl = listAppend.getElementArg().accept(this);
+        if(listType instanceof NoType)
+            return new NoType();
         Type listEls = ((ListType) listType).getType();
         if((listEl instanceof BoolType && listEls instanceof BoolType ) ||
                 (listEl instanceof IntType && listEls instanceof IntType ) ||
                 (listEl instanceof StructType && listEls instanceof StructType ) ||
-                (listEl instanceof ListType && listEls instanceof ListType ) )
+                (listEl instanceof ListType && listEls instanceof ListType && checkLists((ListType)listEl, (ListType)listEls) ) )
         {
             return new VoidType();
         }
