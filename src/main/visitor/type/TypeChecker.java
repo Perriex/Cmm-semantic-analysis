@@ -199,13 +199,13 @@ public class TypeChecker extends Visitor<Void> {
     public Void visit(SetGetVarDeclaration setGetVarDec) {
         noDeclare = true;
         checkType(setGetVarDec.getVarType(), setGetVarDec);
-        SymbolTable.push(new SymbolTable(SymbolTable.top));
         var item = new VariableSymbolTableItem(setGetVarDec.getVarName());
         item.setType(setGetVarDec.getVarType());
         try {
             SymbolTable.top.put(item);
         } catch (ItemAlreadyExistsException ignore) {
         }
+        SymbolTable.push(new SymbolTable(SymbolTable.top));
         for (VariableDeclaration arg : setGetVarDec.getArgs()) {
             arg.accept(this);
         }
@@ -245,6 +245,14 @@ public class TypeChecker extends Visitor<Void> {
         var ltype = assignmentStmt.getLValue().accept(expressionTypeChecker);
         expressionTypeChecker.setAsNoneStatement();
         var rtype = assignmentStmt.getRValue().accept(expressionTypeChecker);
+        if(ltype instanceof FptrType && assignmentStmt.getRValue() instanceof ExprInPar) {
+            var rfptr = new FptrType(new ArrayList<>(), ((FptrType)ltype).getReturnType());
+            for (Expression input : ((ExprInPar) assignmentStmt.getRValue()).getInputs()) {
+                rfptr.addArgType(input.accept(expressionTypeChecker));
+            }
+            if(isEqual(rfptr, ltype))
+                return null;
+        }
         if (!isEqual(ltype, rtype) && !(ltype instanceof VoidType)) {
             assignmentStmt.addError(new UnsupportedOperandType(assignmentStmt.getLine(), BinaryOperator.assign.toString()));
         }
