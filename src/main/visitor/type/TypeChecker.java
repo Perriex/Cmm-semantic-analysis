@@ -48,6 +48,7 @@ public class TypeChecker extends Visitor<Void> {
     }
 
     boolean noDeclare = false;
+    boolean typeError = false;
 
     public TypeChecker() {
         this.expressionTypeChecker = new ExpressionTypeChecker();
@@ -72,7 +73,7 @@ public class TypeChecker extends Visitor<Void> {
         try {
             SymbolTable.root.getItem(StructSymbolTableItem.START_KEY + type.getStructName().getName());
         } catch (ItemNotFoundException e) {
-
+            typeError = true;
             node.addError(new StructNotDeclared(node.getLine(), type.getStructName().getName()));
         }
     }
@@ -145,9 +146,10 @@ public class TypeChecker extends Visitor<Void> {
     @Override
     public Void visit(FunctionDeclaration functionDec) {
         addScope(SymbolTable.root);
+        typeError = false;
         checkType(functionDec.getReturnType(), functionDec);
         var returnItem = new VariableSymbolTableItem(RETID);
-        returnItem.setType(functionDec.getReturnType());
+        returnItem.setType(typeError ? new NoType() : functionDec.getReturnType());
         try {
             SymbolTable.top.put(returnItem);
         } catch (ItemAlreadyExistsException ignore) {
@@ -174,9 +176,10 @@ public class TypeChecker extends Visitor<Void> {
 
     @Override
     public Void visit(VariableDeclaration variableDec) {
+        typeError = false;
         var item = new VariableSymbolTableItem(variableDec.getVarName());
         checkType(variableDec.getVarType(), variableDec);
-        item.setType(variableDec.getVarType());
+        item.setType(typeError ? new NoType() : variableDec.getVarType());
         try {
             SymbolTable.top.put(item);
         } catch (ItemAlreadyExistsException ignore) {
@@ -200,9 +203,10 @@ public class TypeChecker extends Visitor<Void> {
     @Override
     public Void visit(SetGetVarDeclaration setGetVarDec) {
         noDeclare = true;
+        typeError = false;
         checkType(setGetVarDec.getVarType(), setGetVarDec);
         var item = new VariableSymbolTableItem(setGetVarDec.getVarName());
-        item.setType(setGetVarDec.getVarType());
+        item.setType(typeError ? new NoType() : setGetVarDec.getVarType());
         try {
             SymbolTable.top.put(item);
         } catch (ItemAlreadyExistsException ignore) {
