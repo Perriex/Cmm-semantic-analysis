@@ -182,8 +182,7 @@ public class ExpressionTypeChecker extends Visitor<Type> {
     public Type visit(UnaryExpression unaryExpression) {
         Type exType =  unaryExpression.getOperand().accept(this);
         if(exType instanceof VoidType || unaryExpression.getOperand() instanceof ListAppend ){
-            unaryExpression.addError(new CantUseValueOfVoidFunction(unaryExpression.getLine()));
-            exType =new  NoType();
+            exType =new NoType();
         }
         if (unaryExpression.getOperator() == UnaryOperator.not)
         {
@@ -238,7 +237,8 @@ public class ExpressionTypeChecker extends Visitor<Type> {
             funcCall.addError(new ArgsInFunctionCallNotMatchDefinition(funcCall.getLine()));
             return ((FptrType) insType).getReturnType();
         }
-        if(!checkTwoArrayType(((FptrType) insType).getArgsType(),args)){
+        FptrType original = new FptrType(args,((FptrType) insType).getReturnType());
+        if(!TypeChecker.isEqual(insType, original)){
             funcCall.addError(new ArgsInFunctionCallNotMatchDefinition(funcCall.getLine()));
             return ((FptrType) insType).getReturnType();
         }

@@ -88,12 +88,12 @@ public class TypeChecker extends Visitor<Void> {
         }
     }
 
-    private boolean isEqual(StructType type1, StructType type2)
+    static boolean isEqual(StructType type1, StructType type2)
     {
         return type1.getStructName().getName().equals(type2.getStructName().getName());
     }
 
-    private boolean isEqual(FptrType type1, FptrType type2)
+    static boolean isEqual(FptrType type1, FptrType type2)
     {
         if(type1.getArgsType().size() != type2.getArgsType().size())
             return false;
@@ -106,11 +106,11 @@ public class TypeChecker extends Visitor<Void> {
         return true;
     }
 
-    private boolean isEqual(ListType type1, ListType type2) {
+    static boolean isEqual(ListType type1, ListType type2) {
         return isEqual(type1.getType(), type2.getType());
     }
 
-    private boolean isEqual(Type type1, Type type2)
+    static boolean isEqual(Type type1, Type type2)
     {
         if(type1 instanceof NoType || type2 instanceof NoType)
             return true;
