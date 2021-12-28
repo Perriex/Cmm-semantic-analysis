@@ -2,6 +2,7 @@ package main.visitor.type;
 
 import main.ast.nodes.Node;
 import main.ast.nodes.Program;
+import main.ast.nodes.declaration.Declaration;
 import main.ast.nodes.declaration.FunctionDeclaration;
 import main.ast.nodes.declaration.MainDeclaration;
 import main.ast.nodes.declaration.VariableDeclaration;
@@ -71,6 +72,7 @@ public class TypeChecker extends Visitor<Void> {
         try {
             SymbolTable.root.getItem(StructSymbolTableItem.START_KEY + type.getStructName().getName());
         } catch (ItemNotFoundException e) {
+
             node.addError(new StructNotDeclared(node.getLine(), type.getStructName().getName()));
         }
     }
@@ -247,11 +249,8 @@ public class TypeChecker extends Visitor<Void> {
         var rtype = assignmentStmt.getRValue().accept(expressionTypeChecker);
         if(ltype instanceof FptrType && assignmentStmt.getRValue() instanceof ExprInPar) {
             var rfptr = new FptrType(new ArrayList<>(), ((FptrType)ltype).getReturnType());
-            for (Expression input : ((ExprInPar) assignmentStmt.getRValue()).getInputs()) {
-                rfptr.addArgType(input.accept(expressionTypeChecker));
-            }
-            if(isEqual(rfptr, ltype))
-                return null;
+            ((ExprInPar) assignmentStmt.getRValue()).getInputs().forEach(expression -> rfptr.addArgType(expression.accept(expressionTypeChecker)));
+            if(isEqual(rfptr, ltype)) return null;
         }
         if (!isEqual(ltype, rtype) && !(ltype instanceof VoidType)) {
             assignmentStmt.addError(new UnsupportedOperandType(assignmentStmt.getLine(), BinaryOperator.assign.toString()));
@@ -370,6 +369,7 @@ public class TypeChecker extends Visitor<Void> {
             if (var.getDefaultValue() != null) {
                 var type = mustBeValue(var.getDefaultValue());
                 if (!isEqual(type, var.getVarType()) && !(type instanceof NoType)) {
+                    var.addError(new UnsupportedOperandType(var.getLine(), BinaryOperator.assign.toString()));
                     var.addError(new UnsupportedOperandType(var.getLine(), BinaryOperator.assign.toString()));
                 }
             }
