@@ -364,8 +364,9 @@ public class TypeChecker extends Visitor<Void> {
         }
         for (VariableDeclaration var : varDecStmt.getVars()) {
             var item = new VariableSymbolTableItem(var.getVarName());
+            typeError = false;
             checkType(var.getVarType(), varDecStmt);
-            item.setType(var.getVarType());
+            item.setType(typeError ? new NoType() : var.getVarType());
             try {
                 SymbolTable.top.put(item);
             } catch (ItemAlreadyExistsException ignore) {
